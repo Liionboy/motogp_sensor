@@ -35,6 +35,7 @@ from .helpers import (
     events_to_calendar,
     find_next_event,
     is_race_week,
+    parse_api_date,
     parse_classification,
     parse_live_timing,
     parse_standings,
@@ -240,9 +241,12 @@ class MotogpCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         past = [
             e
             for e in events
-            if _event_end(e) is not None and _event_end(e) < now
+            if parse_api_date(e.get("date_end")) is not None
+            and parse_api_date(e.get("date_end")) < now
         ]
-        past.sort(key=lambda e: _event_end(e) or now, reverse=True)
+        past.sort(
+            key=lambda e: parse_api_date(e.get("date_end")) or now, reverse=True
+        )
         last_event = past[0] if past else None
         if last_event is None:
             self.static["last_race_results"] = []
