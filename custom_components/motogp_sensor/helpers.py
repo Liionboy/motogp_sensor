@@ -6,12 +6,15 @@ unit-tested against real API payloads.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from .const import SESSION_STATUS_MAP
 
 RACE_WEEK_GRACE = timedelta(hours=3)
+# date_end is a calendar date; treat the event as all-day, so the effective
+# window ends at the end of that day plus a small grace period.
+EVENT_WINDOW_GRACE = timedelta(days=1) + RACE_WEEK_GRACE
 
 
 def session_status_name(status_id: str | None) -> str:
@@ -89,10 +92,10 @@ def find_next_event(events: list[dict[str, Any]], today: datetime) -> dict[str, 
         end = _parse_date(e.get("date_end"))
         if start is None or end is None:
             continue
-        if start <= today <= end + RACE_WEEK_GRACE:
+        if start <= today <= end + EVENT_WINDOW_GRACE:
             current = e
             break
-        if end + RACE_WEEK_GRACE >= today and (
+        if end + EVENT_WINDOW_GRACE >= today and (
             future is None or start < _parse_date(future.get("date_start"))
         ):
             future = e
@@ -110,7 +113,7 @@ def is_race_week(
     if start is None or end is None:
         return False
     window_start = _week_start_for(start, start_day)
-    return window_start <= today <= end + RACE_WEEK_GRACE
+    return window_start <= today <= end + EVENT_WINDOW_GRACE
 
 
 def _week_start_for(event_start: datetime, start_day: str) -> datetime:
@@ -192,12 +195,19 @@ def parse_classification(classification: list[dict[str, Any]]) -> list[dict[str,
 
 
 def _parse_date(value: Any) -> datetime | None:
-    """Parse a date string from the API (YYYY-MM-DD or ISO)."""
+    """Parse a date string from the API (YYYY-MM-DD or ISO).
+
+    Returned datetimes are always timezone-aware (UTC for naive input)
+    so they can be compared against HA's aware ``utcnow()``.
+    """
     if not isinstance(value, str) or not value:
         return None
     for fmt in ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%S%z", "%Y-%m-%dT%H:%M:%S"):
         try:
-            return datetime.strptime(value, fmt)
+            parsed = datetime.strptime(value, fmt)
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=timezone.utc)
+            return parsed
         except ValueError:
             continue
     return None

@@ -13,7 +13,7 @@ import importlib
 import json
 import sys
 import types
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -136,16 +136,24 @@ def main() -> int:
         {"name": "AUT", "short_name": "AUT", "date_start": "2026-08-14", "date_end": "2026-08-16", "test": False},
     ]
     cases = [
-        ("2026-08-05", True),   # lunea saptamanii GBR
-        ("2026-08-10", True),   # grace 3h dupa GBR
-        ("2026-08-11", True),   # in window-ul AUT
-        ("2026-08-17", False),  # dupa AUT + grace
+        ("2026-03-05T12:00", False),  # pauza intre THA si GBR
+        ("2026-08-05T12:00", True),   # lunea saptamanii GBR
+        ("2026-08-09T12:00", True),   # in plin weekend GBR (cursa duminica)
+        ("2026-08-10T12:00", True),   # race week AUT incepe luni
+        ("2026-08-11T12:00", True),   # in window-ul AUT
+        ("2026-08-17T12:00", False),  # dupa AUT + grace
     ]
     for date_str, expected in cases:
-        today = datetime.strptime(date_str, "%Y-%m-%d")
+        today = datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
         nxt = helpers.find_next_event(events, today)
         got = helpers.is_race_week(nxt, today, "monday")
         check(f"race week {date_str} = {expected}", got == expected)
+
+    # HA foloseste datetime timezone-aware (dt_util.utcnow()) — trebuie sa mearga
+    today_aware = datetime(2026, 8, 9, 12, 0, tzinfo=timezone.utc)
+    nxt = helpers.find_next_event(events, today_aware)
+    check("aware datetime: find_next_event", nxt is not None and nxt["short_name"] == "GBR")
+    check("aware datetime: race week", helpers.is_race_week(nxt, today_aware, "monday") is True)
 
     print(f"\n{'=' * 40}")
     if FAILURES:
