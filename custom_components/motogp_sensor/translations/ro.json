@@ -1,0 +1,31 @@
+{
+  "entity": {
+    "sensor": {
+      "session_status": { "name": "Stare sesiune" },
+      "current_session": { "name": "Sesiune curentă" },
+      "race_lap_count": { "name": "Număr tururi cursă" },
+      "rider_positions": { "name": "Poziții piloți" },
+      "top_three": { "name": "Top trei" },
+      "leader": { "name": "Lider" },
+      "fastest_lap": { "name": "Cel mai rapid tur" },
+      "session_time_remaining": { "name": "Timp rămas sesiune" },
+      "track_weather": { "name": "Vreme pe pistă" },
+      "pit_stops": { "name": "Opriri la boxe" },
+      "next_race": { "name": "Următoarea cursă" },
+      "current_season": { "name": "Sezon curent" },
+      "rider_standings": { "name": "Clasament piloți" },
+      "constructor_standings": { "name": "Clasament constructori" },
+      "last_race_results": { "name": "Rezultate ultima cursă" }
+    },
+    "binary_sensor": {
+      "race_week": { "name": "Săptămână de cursă" },
+      "live_timing_online": { "name": "Live timing online" }
+    },
+    "switch": {
+      "no_spoiler": { "name": "Mod fără spoilere" }
+    },
+    "select": {
+      "live_source": { "name": "Sursă live timing" }
+    }
+  }
+}

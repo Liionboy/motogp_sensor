@@ -1,0 +1,31 @@
+{
+  "entity": {
+    "sensor": {
+      "session_status": { "name": "Session status" },
+      "current_session": { "name": "Current session" },
+      "race_lap_count": { "name": "Race lap count" },
+      "rider_positions": { "name": "Rider positions" },
+      "top_three": { "name": "Top three" },
+      "leader": { "name": "Leader" },
+      "fastest_lap": { "name": "Fastest lap" },
+      "session_time_remaining": { "name": "Session time remaining" },
+      "track_weather": { "name": "Track weather" },
+      "pit_stops": { "name": "Pit stops" },
+      "next_race": { "name": "Next race" },
+      "current_season": { "name": "Current season" },
+      "rider_standings": { "name": "Rider standings" },
+      "constructor_standings": { "name": "Constructor standings" },
+      "last_race_results": { "name": "Last race results" }
+    },
+    "binary_sensor": {
+      "race_week": { "name": "Race week" },
+      "live_timing_online": { "name": "Live timing online" }
+    },
+    "switch": {
+      "no_spoiler": { "name": "No spoiler mode" }
+    },
+    "select": {
+      "live_source": { "name": "Live timing source" }
+    }
+  }
+}

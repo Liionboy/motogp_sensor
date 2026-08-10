@@ -1,0 +1,37 @@
+{
+  "config": {
+    "flow_title": "MotoGP Sensor",
+    "step": {
+      "user": {
+        "title": "MotoGP Sensor",
+        "description": "Connect your home to MotoGP live timing and race data.",
+        "data": {
+          "device_name": "Device name",
+          "enabled_sensors": "Sensors to enable",
+          "live_source": "Live timing source",
+          "race_week_start_day": "Race week start day"
+        }
+      }
+    },
+    "error": {
+      "required": "Device name is required."
+    },
+    "abort": {
+      "already_configured": "This device is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "MotoGP Sensor options",
+        "description": "Update the configuration of your MotoGP device.",
+        "data": {
+          "device_name": "Device name",
+          "enabled_sensors": "Sensors to enable",
+          "live_source": "Live timing source",
+          "race_week_start_day": "Race week start day"
+        }
+      }
+    }
+  }
+}
