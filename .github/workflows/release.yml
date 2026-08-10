@@ -8,6 +8,8 @@ jobs:
   build:
     name: Build and upload release asset
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout
