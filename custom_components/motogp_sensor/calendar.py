@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date
 
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
 from homeassistant.config_entries import ConfigEntry
@@ -59,9 +59,9 @@ class MotogpCalendar(MotogpEntity, CalendarEntity):
 
     @staticmethod
     def _to_event(entry: dict[str, str]) -> CalendarEvent:
-        """Build a CalendarEvent from a calendar entry."""
-        start = datetime.fromisoformat(entry["start"])
-        end = datetime.fromisoformat(entry["end"])
+        """Build a CalendarEvent from a calendar entry (all-day)."""
+        start = date.fromisoformat(entry["start"])
+        end = date.fromisoformat(entry["end"])
         return CalendarEvent(
             summary=entry["summary"],
             start=start,

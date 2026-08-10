@@ -121,7 +121,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up MotoGP sensors from a config entry."""
-    coordinator: MotogpCoordinator = hass.data[DOMAIN_KEY][entry.entry_id]
+    coordinator: MotogpCoordinator = hass.data[DOMAIN][entry.entry_id]
     device_name = entry.data.get(CONF_DEVICE_NAME, "MotoGP")
 
     entities: list[MotogpSensor] = []
