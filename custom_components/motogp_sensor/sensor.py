@@ -307,7 +307,7 @@ def _static_value(key: str, coordinator: MotogpCoordinator) -> Any:
         if not standings:
             return "No standings"
         top = ", ".join(
-            f"{s['position']}. {s['constructor']}" for s in standings[:3]
+            f"{s['position']}. {s['team']}" for s in standings[:3]
         )
         return f"{top} ({len(standings)} teams)"
     if key == SENSOR_LAST_RACE_RESULTS:

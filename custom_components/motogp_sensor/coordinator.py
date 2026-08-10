@@ -31,6 +31,7 @@ from .const import (
     STATIC_REFRESH_INTERVAL,
 )
 from .helpers import (
+    aggregate_constructor_standings,
     events_to_calendar,
     find_next_event,
     is_race_week,
@@ -192,70 +193,71 @@ class MotogpCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.static["next_event"] = find_next_event(events, now)
 
         if category_uuid:
-            # Standings
+            # Standings (rider + aggregated constructor)
             try:
                 standings = await self.api.async_get_standings(season_uuid, category_uuid)
-                self.static["rider_standings"] = parse_standings(
-                    standings.get("classification", [])
-                )
+                rider_standings = parse_standings(standings.get("classification", []))
             except MotogpApiError as err:
                 _LOGGER.debug("Rider standings failed: %s", err)
-                self.static["rider_standings"] = []
+                rider_standings = []
+            self.static["rider_standings"] = rider_standings
+            self.static["constructor_standings"] = aggregate_constructor_standings(
+                rider_standings
+            )
 
-            try:
-                team_standings = await self.api.async_get_standings(
-                    season_uuid, category_uuid, team=True
-                )
-                self.static["constructor_standings"] = parse_standings(
-                    team_standings.get("classification", [])
-                )
-            except MotogpApiError as err:
-                _LOGGER.debug("Constructor standings failed: %s", err)
-                self.static["constructor_standings"] = []
-
-            # Last race results + track weather for the relevant event
+            # Last race results + track weather for the relevant events
             await self._async_refresh_event_details(events, category_uuid, now)
 
     async def _async_refresh_event_details(
         self, events: list[dict[str, Any]], category_uuid: str, now: datetime
     ) -> None:
-        """Fetch sessions/classification for the relevant event."""
+        """Fetch sessions/classification for the relevant events."""
+        # Weather: from the current/next event's sessions
         target = self.static.get("next_event")
-        if target is None:
-            past = [
-                e
-                for e in events
-                if _event_end(e) is not None and _event_end(e) < now
-            ]
-            past.sort(key=lambda e: _event_end(e) or now, reverse=True)
-            target = past[0] if past else None
+        if target is not None:
+            try:
+                sessions = await self.api.async_get_sessions(
+                    target["id"], category_uuid
+                )
+            except MotogpApiError as err:
+                _LOGGER.debug("Sessions failed: %s", err)
+                sessions = []
 
-        if target is None:
+            weather = None
+            for sess in sessions:
+                cond = sess.get("condition")
+                if isinstance(cond, dict) and cond:
+                    weather = {
+                        "track": cond.get("track") or "",
+                        "air": cond.get("air") or "",
+                        "ground": cond.get("ground") or "",
+                        "humidity": cond.get("humidity") or "",
+                        "weather": cond.get("weather") or "",
+                    }
+            self.static["track_weather"] = weather
+
+        # Last race results: from the most recent finished event
+        past = [
+            e
+            for e in events
+            if _event_end(e) is not None and _event_end(e) < now
+        ]
+        past.sort(key=lambda e: _event_end(e) or now, reverse=True)
+        last_event = past[0] if past else None
+        if last_event is None:
+            self.static["last_race_results"] = []
             return
 
         try:
             sessions = await self.api.async_get_sessions(
-                target["id"], category_uuid
+                last_event["id"], category_uuid
             )
         except MotogpApiError as err:
             _LOGGER.debug("Sessions failed: %s", err)
+            self.static["last_race_results"] = []
             return
 
-        # Track weather from the latest session condition
-        weather = None
-        for sess in sessions:
-            cond = sess.get("condition")
-            if isinstance(cond, dict) and cond:
-                weather = {
-                    "track": cond.get("track") or "",
-                    "air": cond.get("air") or "",
-                    "ground": cond.get("ground") or "",
-                    "humidity": cond.get("humidity") or "",
-                    "weather": cond.get("weather") or "",
-                }
-        self.static["track_weather"] = weather
-
-        # Last race results: pick the best session type (RAC > SPR)
+        # Pick the best session type (RAC > SPR)
         race = None
         for s_type in RACE_SESSION_PRIORITY:
             race = next(
@@ -277,6 +279,8 @@ class MotogpCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             except MotogpApiError as err:
                 _LOGGER.debug("Classification failed: %s", err)
                 self.static["last_race_results"] = []
+        else:
+            self.static["last_race_results"] = []
 
     # ── Transitions / device events ─────────────────────────────────────────
     def _detect_transitions(

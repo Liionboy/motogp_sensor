@@ -104,6 +104,14 @@ def main() -> int:
     check("next_race attrs", sensor_mod._static_attributes("next_race", coord).get("circuit") == "Silverstone Circuit")
     check("weather attrs", sensor_mod._static_attributes("track_weather", coord).get("air") == "19º")
 
+    # Constructor standings aggregation
+    aggregated = helpers.aggregate_constructor_standings(coord.static["rider_standings"])
+    check("constructor aggregation: 2 echipe", len(aggregated) == 2)
+    check("constructor aggregation: suma puncte", aggregated[0]["points"] == 100)
+    check("constructor aggregation: pozitii", aggregated[0]["position"] == 1 and aggregated[1]["position"] == 2)
+    coord.static["constructor_standings"] = aggregated
+    check("constructor standings value", "teams" in str(sensor_mod._static_value("constructor_standings", coord)))
+
     if live:
         parsed_live = helpers.parse_live_timing(live)
         coord.live_data = parsed_live

@@ -194,6 +194,34 @@ def parse_classification(classification: list[dict[str, Any]]) -> list[dict[str,
     return result
 
 
+def aggregate_constructor_standings(
+    rider_standings: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Aggregate rider standings into team/constructor standings.
+
+    The Pulselive API returns rider data even for ``type=team`` requests,
+    so we compute the constructor classification ourselves from the rider
+    standings (points summed per constructor).
+    """
+    by_constructor: dict[str, dict[str, Any]] = {}
+    for entry in rider_standings:
+        constructor = entry.get("constructor") or entry.get("team") or "Unknown"
+        points = entry.get("points") or 0
+        bucket = by_constructor.setdefault(
+            constructor,
+            {"constructor": constructor, "team": constructor, "points": 0, "riders": 0},
+        )
+        bucket["points"] += points
+        bucket["riders"] += 1
+
+    standings = sorted(
+        by_constructor.values(), key=lambda x: x["points"], reverse=True
+    )
+    for index, entry in enumerate(standings, start=1):
+        entry["position"] = index
+    return standings
+
+
 def _parse_date(value: Any) -> datetime | None:
     """Parse a date string from the API (YYYY-MM-DD or ISO).
 
