@@ -50,8 +50,8 @@ LIVE_POLLING_IDLE = timedelta(seconds=300)    # no active session
 STATIC_REFRESH_INTERVAL = timedelta(hours=6)  # standings/calendar refresh
 
 # ── HTTP ─────────────────────────────────────────────────────────────────────
-REQUEST_TIMEOUT = 10
-USER_AGENT = "Mozilla/5.0 (HomeAssistant motogp_sensor/1.0.0)"
+REQUEST_TIMEOUT = 30
+USER_AGENT = "Mozilla/5.0 (HomeAssistant motogp_sensor/1.0.4)"
 
 # ── Pulselive REST API ───────────────────────────────────────────────────────
 PULSELIVE_BASE_URL = "https://api.motogp.pulselive.com/motogp/v1"
