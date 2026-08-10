@@ -104,6 +104,7 @@ def main() -> int:
     check("standings attrs", sensor_mod._static_attributes("rider_standings", coord).get("count") == 2)
     check("next_race attrs", sensor_mod._static_attributes("next_race", coord).get("circuit") == "Silverstone Circuit")
     check("weather attrs", sensor_mod._static_attributes("track_weather", coord).get("air") == "19º")
+    check("weather value", sensor_mod._static_value("track_weather", coord) == "Partly-Cloudy")
 
     # Days until next race (computed dynamically against today)
     coord.static["next_event"]["date_start"] = "2026-08-28"

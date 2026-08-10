@@ -309,6 +309,11 @@ def _static_value(key: str, coordinator: MotogpCoordinator) -> Any:
             return None
         days = (start.date() - datetime.now(timezone.utc).date()).days
         return max(days, 0)
+    if key == SENSOR_TRACK_WEATHER:
+        weather = static.get("track_weather")
+        if not weather:
+            return None
+        return weather.get("weather") or "No data"
     if key == SENSOR_CURRENT_SEASON:
         season = static.get("season")
         return season.get("year") if season else None
