@@ -328,11 +328,3 @@ class MotogpCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             elif not race_week and self._prev_race_week:
                 self._fire_event(EVENT_RACE_WEEK_ENDED)
         self._prev_race_week = race_week
-
-
-def _event_end(event: dict[str, Any]) -> datetime | None:
-    """Parse the event end date."""
-    value = event.get("date_end")
-    if not isinstance(value, str) or not value:
-        return None
-    return dt_util.parse_datetime(value) or dt_util.parse_date(value)

@@ -88,15 +88,15 @@ def find_next_event(events: list[dict[str, Any]], today: datetime) -> dict[str, 
     current = None
     future = None
     for e in candidates:
-        start = _parse_date(e.get("date_start"))
-        end = _parse_date(e.get("date_end"))
+        start = parse_api_date(e.get("date_start"))
+        end = parse_api_date(e.get("date_end"))
         if start is None or end is None:
             continue
         if start <= today <= end + EVENT_WINDOW_GRACE:
             current = e
             break
         if end + EVENT_WINDOW_GRACE >= today and (
-            future is None or start < _parse_date(future.get("date_start"))
+            future is None or start < parse_api_date(future.get("date_start"))
         ):
             future = e
     return current or future
@@ -108,8 +108,8 @@ def is_race_week(
     """Return True when today falls inside the race week window."""
     if not next_event:
         return False
-    start = _parse_date(next_event.get("date_start"))
-    end = _parse_date(next_event.get("date_end"))
+    start = parse_api_date(next_event.get("date_start"))
+    end = parse_api_date(next_event.get("date_end"))
     if start is None or end is None:
         return False
     window_start = _week_start_for(start, start_day)
@@ -133,8 +133,8 @@ def events_to_calendar(events: list[dict[str, Any]]) -> list[dict[str, str]]:
     for e in events:
         if not isinstance(e, dict) or e.get("test", False):
             continue
-        start = _parse_date(e.get("date_start"))
-        end = _parse_date(e.get("date_end"))
+        start = parse_api_date(e.get("date_start"))
+        end = parse_api_date(e.get("date_end"))
         if start is None or end is None:
             continue
         name = e.get("name") or e.get("sponsored_name") or "MotoGP Event"
@@ -222,7 +222,7 @@ def aggregate_constructor_standings(
     return standings
 
 
-def _parse_date(value: Any) -> datetime | None:
+def parse_api_date(value: Any) -> datetime | None:
     """Parse a date string from the API (YYYY-MM-DD or ISO).
 
     Returned datetimes are always timezone-aware (UTC for naive input)
