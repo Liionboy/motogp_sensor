@@ -59,12 +59,15 @@ class MotogpCalendar(MotogpEntity, CalendarEntity):
 
     @staticmethod
     def _to_event(entry: dict[str, str]) -> CalendarEvent:
-        """Build a CalendarEvent from a calendar entry (all-day)."""
+        """Build a CalendarEvent from a calendar entry.
+
+        Passing ``date`` objects (instead of datetimes) makes the event
+        all-day in modern Home Assistant versions.
+        """
         start = date.fromisoformat(entry["start"])
         end = date.fromisoformat(entry["end"])
         return CalendarEvent(
             summary=entry["summary"],
             start=start,
             end=end,
-            all_day=True,
         )
