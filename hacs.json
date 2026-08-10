@@ -3,6 +3,5 @@
   "render_readme": true,
   "homeassistant": "2025.1.0",
   "hacs": "2.0.0",
-  "domains": ["motogp_sensor"],
   "country": ["RO", "GB", "IT", "ES"]
 }

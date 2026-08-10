@@ -1,6 +1,7 @@
 {
   "domain": "motogp_sensor",
   "name": "MotoGP Sensor",
+  "after_dependencies": ["logbook", "recorder"],
   "codeowners": ["@Liionboy"],
   "config_flow": true,
   "dependencies": [],
@@ -9,6 +10,5 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/Liionboy/motogp_sensor/issues",
   "requirements": ["python-dateutil>=2.8"],
-  "version": "1.0.0",
-  "after_dependencies": ["logbook", "recorder"]
+  "version": "1.0.0"
 }
