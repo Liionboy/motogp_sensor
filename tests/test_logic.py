@@ -13,7 +13,7 @@ import importlib
 import json
 import sys
 import types
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -26,6 +26,7 @@ stub_homeassistant()
 
 from motogp_sensor import helpers  # noqa: E402
 from motogp_sensor import sensor as sensor_mod  # noqa: E402
+from motogp_sensor.sensor import SENSOR_DESCRIPTIONS  # noqa: E402
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 FAILURES: list[str] = []
@@ -103,6 +104,14 @@ def main() -> int:
     check("standings attrs", sensor_mod._static_attributes("rider_standings", coord).get("count") == 2)
     check("next_race attrs", sensor_mod._static_attributes("next_race", coord).get("circuit") == "Silverstone Circuit")
     check("weather attrs", sensor_mod._static_attributes("track_weather", coord).get("air") == "19º")
+
+    # Days until next race (computed dynamically against today)
+    coord.static["next_event"]["date_start"] = "2026-08-28"
+    expected_days = (date(2026, 8, 28) - date.today()).days
+    got_days = sensor_mod._static_value("next_race_in", coord)
+    check("next_race_in value", got_days == max(expected_days, 0), f"got {got_days}, expected {max(expected_days, 0)}")
+    check("next_race_in attrs", sensor_mod._static_attributes("next_race_in", coord).get("short_name") == "GBR")
+    check("next_race_in unit", SENSOR_DESCRIPTIONS["next_race_in"].unit_of_measurement == "d")
 
     # Constructor standings aggregation
     aggregated = helpers.aggregate_constructor_standings(coord.static["rider_standings"])

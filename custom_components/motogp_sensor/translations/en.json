@@ -12,6 +12,7 @@
       "track_weather": { "name": "Track weather" },
       "pit_stops": { "name": "Pit stops" },
       "next_race": { "name": "Next race" },
+      "next_race_in": { "name": "Days until next race" },
       "current_season": { "name": "Current season" },
       "rider_standings": { "name": "Rider standings" },
       "constructor_standings": { "name": "Constructor standings" },

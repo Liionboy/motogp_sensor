@@ -31,6 +31,7 @@ from .const import (
     STATIC_REFRESH_INTERVAL,
 )
 from .helpers import (
+    EVENT_WINDOW_GRACE,
     aggregate_constructor_standings,
     events_to_calendar,
     find_next_event,
@@ -213,12 +214,33 @@ class MotogpCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self, events: list[dict[str, Any]], category_uuid: str, now: datetime
     ) -> None:
         """Fetch sessions/classification for the relevant events."""
-        # Weather: from the current/next event's sessions
+        past = [
+            e
+            for e in events
+            if parse_api_date(e.get("date_end")) is not None
+            and parse_api_date(e.get("date_end")) < now
+        ]
+        past.sort(
+            key=lambda e: parse_api_date(e.get("date_end")) or now, reverse=True
+        )
+        last_event = past[0] if past else None
+
+        # Weather: from the current weekend if we are inside it, otherwise
+        # from the most recent finished event (which has real conditions).
+        weather_event = None
         target = self.static.get("next_event")
         if target is not None:
+            start = parse_api_date(target.get("date_start"))
+            end = parse_api_date(target.get("date_end"))
+            if start is not None and end is not None and start <= now <= end + EVENT_WINDOW_GRACE:
+                weather_event = target
+        if weather_event is None:
+            weather_event = last_event
+
+        if weather_event is not None:
             try:
                 sessions = await self.api.async_get_sessions(
-                    target["id"], category_uuid
+                    weather_event["id"], category_uuid
                 )
             except MotogpApiError as err:
                 _LOGGER.debug("Sessions failed: %s", err)
@@ -238,16 +260,6 @@ class MotogpCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self.static["track_weather"] = weather
 
         # Last race results: from the most recent finished event
-        past = [
-            e
-            for e in events
-            if parse_api_date(e.get("date_end")) is not None
-            and parse_api_date(e.get("date_end")) < now
-        ]
-        past.sort(
-            key=lambda e: parse_api_date(e.get("date_end")) or now, reverse=True
-        )
-        last_event = past[0] if past else None
         if last_event is None:
             self.static["last_race_results"] = []
             return

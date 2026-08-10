@@ -109,14 +109,14 @@ def stub_homeassistant() -> None:
     mk("homeassistant.helpers.device_registry", DeviceInfo=DummyDeviceInfo)
     mk("homeassistant.helpers.entity_platform", AddEntitiesCallback=None)
     mk("homeassistant.components.sensor", SensorEntity=DummySensorEntity,
-      SensorEntityDescription=type("SED", (), {"__init__": lambda self, **kw: setattr(self, "kw", kw)}))
+      SensorEntityDescription=type("SED", (), {"__init__": lambda self, **kw: self.__dict__.update(kw)}))
     mk("homeassistant.components.binary_sensor", BinarySensorEntity=DummyBinarySensorEntity,
-      BinarySensorEntityDescription=type("BSED", (), {"__init__": lambda self, **kw: setattr(self, "kw", kw)}))
+      BinarySensorEntityDescription=type("BSED", (), {"__init__": lambda self, **kw: self.__dict__.update(kw)}))
     mk("homeassistant.components.calendar", CalendarEntity=DummyCalendarEntity, CalendarEvent=DummyCalendarEvent)
     mk("homeassistant.components.switch", SwitchEntity=DummySwitchEntity,
-      SwitchEntityDescription=type("SWED", (), {"__init__": lambda self, **kw: setattr(self, "kw", kw)}))
+      SwitchEntityDescription=type("SWED", (), {"__init__": lambda self, **kw: self.__dict__.update(kw)}))
     mk("homeassistant.components.select", SelectEntity=DummySelectEntity,
-      SelectEntityDescription=type("SELED", (), {"__init__": lambda self, **kw: setattr(self, "kw", kw)}))
+      SelectEntityDescription=type("SELED", (), {"__init__": lambda self, **kw: self.__dict__.update(kw)}))
     mk("homeassistant.components.device_automation", DEVICE_TRIGGER_BASE_SCHEMA=DummyDeviceTriggerBaseSchema())
     mk("homeassistant.core", HomeAssistant=None, Event=None, callback=lambda f: f)
     mk("homeassistant.helpers.trigger", TriggerActionType=None, TriggerInfo=None)

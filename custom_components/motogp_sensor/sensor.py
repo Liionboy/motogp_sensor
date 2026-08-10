@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from typing import Any
 
 from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
@@ -21,6 +22,7 @@ from .const import (
     SENSOR_LAST_RACE_RESULTS,
     SENSOR_LEADER,
     SENSOR_NEXT_RACE,
+    SENSOR_NEXT_RACE_IN,
     SENSOR_PIT_STOPS,
     SENSOR_RACE_LAP_COUNT,
     SENSOR_RIDER_POSITIONS,
@@ -32,6 +34,7 @@ from .const import (
 )
 from .coordinator import MotogpCoordinator
 from .entity import MotogpEntity
+from .helpers import parse_api_date
 
 LIVE = "live"
 STATIC = "static"
@@ -91,6 +94,12 @@ SENSOR_DESCRIPTIONS: dict[str, SensorEntityDescription] = {
         key=SENSOR_NEXT_RACE,
         translation_key=SENSOR_NEXT_RACE,
         icon="mdi:calendar-star",
+    ),
+    SENSOR_NEXT_RACE_IN: SensorEntityDescription(
+        key=SENSOR_NEXT_RACE_IN,
+        translation_key=SENSOR_NEXT_RACE_IN,
+        icon="mdi:calendar-clock",
+        unit_of_measurement="d",
     ),
     SENSOR_CURRENT_SEASON: SensorEntityDescription(
         key=SENSOR_CURRENT_SEASON,
@@ -291,6 +300,15 @@ def _static_value(key: str, coordinator: MotogpCoordinator) -> Any:
     if key == SENSOR_NEXT_RACE:
         event = static.get("next_event")
         return event.get("name") if event else "No race scheduled"
+    if key == SENSOR_NEXT_RACE_IN:
+        event = static.get("next_event")
+        if not event:
+            return None
+        start = parse_api_date(event.get("date_start"))
+        if start is None:
+            return None
+        days = (start.date() - datetime.now(timezone.utc).date()).days
+        return max(days, 0)
     if key == SENSOR_CURRENT_SEASON:
         season = static.get("season")
         return season.get("year") if season else None
@@ -334,6 +352,14 @@ def _static_attributes(key: str, coordinator: MotogpCoordinator) -> dict[str, An
             attrs["circuit"] = _event_circuit(event)
             attrs["country"] = _event_country(event)
             attrs["sponsored_name"] = event.get("sponsored_name")
+    elif key == SENSOR_NEXT_RACE_IN:
+        event = static.get("next_event")
+        if event:
+            attrs["race"] = event.get("name")
+            attrs["short_name"] = event.get("short_name")
+            attrs["date_start"] = event.get("date_start")
+            attrs["date_end"] = event.get("date_end")
+            attrs["circuit"] = _event_circuit(event)
     elif key == SENSOR_CURRENT_SEASON:
         season = static.get("season")
         if season:

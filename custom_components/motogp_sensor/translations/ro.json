@@ -12,6 +12,7 @@
       "track_weather": { "name": "Vreme pe pistă" },
       "pit_stops": { "name": "Opriri la boxe" },
       "next_race": { "name": "Următoarea cursă" },
+      "next_race_in": { "name": "Zile până la următoarea cursă" },
       "current_season": { "name": "Sezon curent" },
       "rider_standings": { "name": "Clasament piloți" },
       "constructor_standings": { "name": "Clasament constructori" },
