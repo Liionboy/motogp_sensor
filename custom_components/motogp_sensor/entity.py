@@ -32,6 +32,6 @@ class MotogpEntity(CoordinatorEntity[MotogpCoordinator]):
             name=self._device_name,
             manufacturer=MANUFACTURER,
             model=MODEL,
-            sw_version="1.0.0",
+            sw_version="1.0.10",
             configuration_url="https://github.com/Liionboy/motogp_sensor",
         )

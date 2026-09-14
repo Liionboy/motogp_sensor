@@ -53,6 +53,9 @@ def parse_live_timing(payload: dict[str, Any]) -> dict[str, Any]:
                 "lap_time": r.get("lap_time") or "",
                 "num_lap": r.get("num_lap"),
                 "last_lap_time": r.get("last_lap_time") or "",
+                "best_lap_time": (
+                    r.get("best_lap_time") or r.get("fastest_lap_time") or ""
+                ),
                 "gap_first": r.get("gap_first") or "",
                 "gap_prev": r.get("gap_prev") or "",
                 "on_pit": bool(r.get("on_pit")),
@@ -60,7 +63,10 @@ def parse_live_timing(payload: dict[str, Any]) -> dict[str, Any]:
             }
         )
 
-    riders.sort(key=lambda x: (x["position"] is None, x["position"]))
+    # Pulselive uses -1 for riders who are retired/not classified.  Those
+    # riders must remain after the classified riders; sorting -1 as a normal
+    # position makes them appear as the leader.
+    riders.sort(key=_rider_position_sort_key)
 
     return {
         "session_status_id": head.get("session_status_id") or "N",
@@ -74,6 +80,14 @@ def parse_live_timing(payload: dict[str, Any]) -> dict[str, Any]:
         "remaining": head.get("remaining") or "0",
         "riders": riders,
     }
+
+
+def _rider_position_sort_key(rider: dict[str, Any]) -> tuple[int, float]:
+    """Sort classified riders first and unclassified riders last."""
+    position = rider.get("position")
+    if isinstance(position, (int, float)) and position >= 1:
+        return (0, float(position))
+    return (1, float("inf"))
 
 
 def find_next_event(events: list[dict[str, Any]], today: datetime) -> dict[str, Any] | None:
@@ -195,24 +209,49 @@ def parse_classification(classification: list[dict[str, Any]]) -> list[dict[str,
 
 
 def aggregate_constructor_standings(
-    rider_standings: list[dict[str, Any]],
+    classifications: list[list[dict[str, Any]]],
 ) -> list[dict[str, Any]]:
-    """Aggregate rider standings into team/constructor standings.
+    """Aggregate constructor points from completed race classifications.
 
-    The Pulselive API returns rider data even for ``type=team`` requests,
-    so we compute the constructor classification ourselves from the rider
-    standings (points summed per constructor).
+    Only the highest-scoring rider for a constructor scores in each race.
+    Passing both the Sprint and Grand Prix classifications therefore mirrors
+    the official constructor championship scoring without relying on the
+    Pulselive endpoint's ignored ``type=team`` query parameter.
     """
     by_constructor: dict[str, dict[str, Any]] = {}
-    for entry in rider_standings:
-        constructor = entry.get("constructor") or entry.get("team") or "Unknown"
-        points = entry.get("points") or 0
-        bucket = by_constructor.setdefault(
-            constructor,
-            {"constructor": constructor, "team": constructor, "points": 0, "riders": 0},
-        )
-        bucket["points"] += points
-        bucket["riders"] += 1
+    for classification in classifications:
+        best_for_race: dict[str, int | float] = {}
+        for entry in classification:
+            if not isinstance(entry, dict):
+                continue
+            constructor = _dict_get(entry.get("constructor")).get("name")
+            if not constructor:
+                continue
+            points = entry.get("points") or 0
+            if not isinstance(points, (int, float)):
+                continue
+            best_for_race[constructor] = max(
+                best_for_race.get(constructor, 0), points
+            )
+
+        # A cancelled/restarted session can be returned as FINISHED with a
+        # classification full of zero-point rows. It is not a championship
+        # race and must not inflate the race count.
+        if not any(points > 0 for points in best_for_race.values()):
+            continue
+
+        for constructor, points in best_for_race.items():
+            bucket = by_constructor.setdefault(
+                constructor,
+                {
+                    "constructor": constructor,
+                    "team": constructor,
+                    "points": 0,
+                    "races": 0,
+                },
+            )
+            bucket["points"] += points
+            bucket["races"] += 1
 
     standings = sorted(
         by_constructor.values(), key=lambda x: x["points"], reverse=True

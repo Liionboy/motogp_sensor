@@ -51,7 +51,7 @@ STATIC_REFRESH_INTERVAL = timedelta(hours=6)  # standings/calendar refresh
 
 # ── HTTP ─────────────────────────────────────────────────────────────────────
 REQUEST_TIMEOUT = 30
-USER_AGENT = "Mozilla/5.0 (HomeAssistant motogp_sensor/1.0.4)"
+USER_AGENT = "Mozilla/5.0 (HomeAssistant motogp_sensor/1.0.10)"
 
 # ── Pulselive REST API ───────────────────────────────────────────────────────
 PULSELIVE_BASE_URL = "https://api.motogp.pulselive.com/motogp/v1"

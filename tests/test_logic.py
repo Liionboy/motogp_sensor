@@ -62,10 +62,15 @@ def main() -> int:
         parsed = helpers.parse_live_timing(live)
         check("status mapat", parsed["session_status_name"] in ("Finished", "In Progress", "Not Started"))
         check("riders parsati", len(parsed["riders"]) > 0)
-        check("riders sortati dupa pozitie", all(
-            parsed["riders"][i]["position"] <= parsed["riders"][i + 1]["position"]
-            for i in range(len(parsed["riders"]) - 1)
-        ))
+        positions = [r["position"] for r in parsed["riders"]]
+        first_unclassified = next(
+            (i for i, position in enumerate(positions) if position < 1), len(positions)
+        )
+        check(
+            "riders sortati dupa pozitie",
+            positions[:first_unclassified] == sorted(positions[:first_unclassified])
+            and all(position < 1 for position in positions[first_unclassified:]),
+        )
         check("rider are nume", bool(parsed["riders"][0].get("surname") or parsed["riders"][0].get("shortname")))
     else:
         print("  (fara fixture live.json — test sintetic)")
@@ -114,10 +119,21 @@ def main() -> int:
     check("next_race_in attrs", sensor_mod._static_attributes("next_race_in", coord).get("short_name") == "GBR")
     check("next_race_in unit", SENSOR_DESCRIPTIONS["next_race_in"].unit_of_measurement == "d")
 
-    # Constructor standings aggregation
-    aggregated = helpers.aggregate_constructor_standings(coord.static["rider_standings"])
-    check("constructor aggregation: 2 echipe", len(aggregated) == 2)
-    check("constructor aggregation: suma puncte", aggregated[0]["points"] == 100)
+    # Constructor standings aggregation: best rider per constructor per race.
+    constructor_classifications = [
+        [
+            {"constructor": {"name": "A"}, "points": 25},
+            {"constructor": {"name": "A"}, "points": 20},
+            {"constructor": {"name": "B"}, "points": 16},
+        ],
+        [
+            {"constructor": {"name": "A"}, "points": 12},
+            {"constructor": {"name": "B"}, "points": 20},
+        ],
+    ]
+    aggregated = helpers.aggregate_constructor_standings(constructor_classifications)
+    check("constructor aggregation: 2 constructori", len(aggregated) == 2)
+    check("constructor aggregation: best rider per race", aggregated[0]["points"] == 37)
     check("constructor aggregation: pozitii", aggregated[0]["position"] == 1 and aggregated[1]["position"] == 2)
     coord.static["constructor_standings"] = aggregated
     check("constructor standings value", "teams" in str(sensor_mod._static_value("constructor_standings", coord)))
@@ -129,6 +145,8 @@ def main() -> int:
         check("leader value", sensor_mod._live_value("leader", parsed_live))
         check("lap count value", sensor_mod._live_value("race_lap_count", parsed_live) is not None)
         check("pit stops value", sensor_mod._live_value("pit_stops", parsed_live) is not None)
+        check("leader excludes unclassified", sensor_mod._live_value("leader", parsed_live) == "MCDONALD")
+        check("fastest lap excludes zero", sensor_mod._live_value("fastest_lap", parsed_live) == "2'10.217")
 
     print("\n== No spoiler mode ==")
     if live:

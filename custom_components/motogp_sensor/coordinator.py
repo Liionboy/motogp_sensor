@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import datetime
 from typing import Any
@@ -203,12 +204,74 @@ class MotogpCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 _LOGGER.debug("Rider standings failed: %s", err)
                 rider_standings = []
             self.static["rider_standings"] = rider_standings
-            self.static["constructor_standings"] = aggregate_constructor_standings(
-                rider_standings
+            constructor_classifications = await self._async_get_constructor_classifications(
+                events, category_uuid, now
             )
+            if constructor_classifications is not None:
+                self.static["constructor_standings"] = aggregate_constructor_standings(
+                    constructor_classifications
+                )
 
             # Last race results + track weather for the relevant events
             await self._async_refresh_event_details(events, category_uuid, now)
+
+    async def _async_get_constructor_classifications(
+        self,
+        events: list[dict[str, Any]],
+        category_uuid: str,
+        now: datetime,
+    ) -> list[list[dict[str, Any]]] | None:
+        """Fetch completed Sprint and Grand Prix classifications.
+
+        The standings endpoint currently returns rider rows even when passed
+        ``type=team``.  Constructor standings must instead use the best rider
+        result from each completed race, so fetch the official classifications
+        and aggregate them locally.
+        """
+        finished_events = [
+            event
+            for event in events
+            if not event.get("test", False)
+            and parse_api_date(event.get("date_end")) is not None
+            and parse_api_date(event.get("date_end")) < now
+        ]
+        session_results = await asyncio.gather(
+            *(
+                self.api.async_get_sessions(event["id"], category_uuid)
+                for event in finished_events
+            ),
+            return_exceptions=True,
+        )
+        if any(isinstance(result, Exception) for result in session_results):
+            _LOGGER.debug("Constructor standings session lookup failed")
+            return None
+
+        classification_requests = []
+        for sessions in session_results:
+            if not isinstance(sessions, list):
+                return None
+            for session in sessions:
+                if (
+                    isinstance(session, dict)
+                    and session.get("type") in RACE_SESSION_PRIORITY
+                    and session.get("status") == "FINISHED"
+                ):
+                    classification_requests.append(
+                        self.api.async_get_classification(session["id"])
+                    )
+
+        payloads = await asyncio.gather(
+            *classification_requests, return_exceptions=True
+        )
+        if any(isinstance(payload, Exception) for payload in payloads):
+            _LOGGER.debug("Constructor standings classification lookup failed")
+            return None
+        return [
+            payload["classification"]
+            for payload in payloads
+            if isinstance(payload, dict)
+            and isinstance(payload.get("classification"), list)
+        ]
 
     async def _async_refresh_event_details(
         self, events: list[dict[str, Any]], category_uuid: str, now: datetime

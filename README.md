@@ -38,6 +38,11 @@ with Dorna Sports or MotoGP.
 | Last race results | Classification of the most recent race |
 | Calendar | All GPs as a HA calendar entity |
 
+Constructor standings are calculated from the completed Sprint and Grand Prix
+classifications because the public standings endpoint currently returns rider
+rows even when the `type=team` parameter is supplied. For each race, only the
+highest-scoring rider for each constructor contributes points.
+
 **Binary sensors**:
 
 | Sensor | Description |

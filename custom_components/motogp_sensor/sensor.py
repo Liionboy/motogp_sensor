@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 from datetime import datetime, timezone
 from typing import Any
 
@@ -219,11 +220,7 @@ def _live_value(key: str, live: dict[str, Any]) -> Any:
             return "No leader"
         return riders[0].get("surname") or riders[0].get("shortname") or "Unknown"
     if key == SENSOR_FASTEST_LAP:
-        laps = [
-            (r.get("last_lap_time") or "", r)
-            for r in riders
-            if r.get("last_lap_time")
-        ]
+        laps = _valid_lap_entries(riders)
         if not laps:
             return "No data"
         return min(laps, key=lambda x: _lap_seconds(x[0]))[0]
@@ -258,11 +255,7 @@ def _live_attributes(key: str, live: dict[str, Any]) -> dict[str, Any]:
         attrs["leader_details"] = riders[0] if riders else None
         attrs["gap_to_leader"] = riders[1].get("gap_first") if len(riders) > 1 else None
     elif key == SENSOR_FASTEST_LAP:
-        laps = [
-            (r.get("last_lap_time") or "", r)
-            for r in riders
-            if r.get("last_lap_time")
-        ]
+        laps = _valid_lap_entries(riders)
         if laps:
             _, best = min(laps, key=lambda x: _lap_seconds(x[0]))
             attrs["fastest_rider"] = best.get("surname")
@@ -274,6 +267,24 @@ def _live_attributes(key: str, live: dict[str, Any]) -> dict[str, Any]:
             r.get("surname") for r in riders if r.get("on_pit")
         ]
     return attrs
+
+
+def _valid_lap_entries(
+    riders: list[dict[str, Any]],
+) -> list[tuple[str, dict[str, Any]]]:
+    """Return usable lap times, preferring a session-best field if present."""
+    laps: list[tuple[str, dict[str, Any]]] = []
+    for rider in riders:
+        lap_time = (
+            rider.get("best_lap_time")
+            or rider.get("fastest_lap_time")
+            or rider.get("last_lap_time")
+            or ""
+        )
+        seconds = _lap_seconds(lap_time)
+        if lap_time and seconds > 0 and math.isfinite(seconds):
+            laps.append((lap_time, rider))
+    return laps
 
 
 def _lap_seconds(lap_time: str) -> float:
