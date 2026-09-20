@@ -91,29 +91,30 @@ def _rider_position_sort_key(rider: dict[str, Any]) -> tuple[int, float]:
 
 
 def find_next_event(events: list[dict[str, Any]], today: datetime) -> dict[str, Any] | None:
-    """Return the next race event (not a test) from a list of events."""
+    """Return the next race event (not a test) from a list of events.
+
+    Uses the raw event dates (no grace period) so that once a weekend
+    has ended the sensor immediately shows the following event.
+    The grace period is only applied by *is_race_week* and the live-
+    timing polling logic, which is a separate concern.
+    """
     candidates = [
         e for e in events if isinstance(e, dict) and not e.get("test", False)
     ]
     if not candidates:
         return None
-    # The "next" event is the one whose window still contains today, or the
-    # earliest event that has not ended yet.
-    current = None
-    future = None
+    # Pick the soonest event whose end date hasn't passed yet.
+    future: dict[str, Any] | None = None
     for e in candidates:
         start = parse_api_date(e.get("date_start"))
         end = parse_api_date(e.get("date_end"))
         if start is None or end is None:
             continue
-        if start <= today <= end + EVENT_WINDOW_GRACE:
-            current = e
-            break
-        if end + EVENT_WINDOW_GRACE >= today and (
+        if end >= today and (
             future is None or start < parse_api_date(future.get("date_start"))
         ):
             future = e
-    return current or future
+    return future
 
 
 def is_race_week(
